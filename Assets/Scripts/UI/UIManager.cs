@@ -20,10 +20,10 @@ namespace WebRTCTutorial.UI
             {
                 // Validate that all references are connected
                 Assert.IsNotNull(_peerViewA);
-                Assert.IsNotNull(_peerViewB);
+               
                 Assert.IsNotNull(_cameraDropdown);
-                Assert.IsNotNull(_connectButton);
-                Assert.IsNotNull(_disconnectButton);
+               
+                
             }
             catch (Exception)
             {
@@ -57,8 +57,8 @@ namespace WebRTCTutorial.UI
             }
 
             // Subscribe to buttons
-            _connectButton.onClick.AddListener(OnConnectButtonClicked);
-            _disconnectButton.onClick.AddListener(OnDisconnectButtonClicked);
+            
+           
 
             // Clear default options from the dropdown
             _cameraDropdown.ClearOptions();
@@ -73,7 +73,7 @@ namespace WebRTCTutorial.UI
             _cameraDropdown.onValueChanged.AddListener(SetActiveCamera);
 
             // Subscribe to when video from the other peer is received
-            _videoManager.RemoteVideoReceived += OnRemoteVideoReceived;
+            
             Debug.Log($"UiManager Awake");
         }
 
@@ -83,34 +83,31 @@ namespace WebRTCTutorial.UI
             // Enable first camera from the dropdown.
             // We call it in Start to make sure that Awake of all game objects completed and all scripts 
             SetActiveCamera(deviceIndex: 0);
+            _videoManager.Connect();
         }
 
         // Called by Unity -> https://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html
         protected void Update()
         {
             // Control buttons being clickable by the connection state
-            _connectButton.interactable = _videoManager.CanConnect;
-            _disconnectButton.interactable = _videoManager.IsConnected;
+            
+           
         }
 
         [SerializeField]
         private PeerView _peerViewA;
 
-        [SerializeField]
-        private PeerView _peerViewB;
+        
+      
 
         [SerializeField]
         private TMP_Dropdown _cameraDropdown;
 
-        [SerializeField]
-        private Button _connectButton;
-
+      
         public AudioSource _audioSource;
 
 
         [SerializeField]
-        private Button _disconnectButton;
-
         private WebCamTexture _activeCamera;
 
         private AudioClip micClip;
@@ -212,6 +209,7 @@ namespace WebRTCTutorial.UI
            
             _peerViewA.SetVideoTexture(_activeCamera);
             _peerViewA.audioSource.clip=  _activeMicrophone;
+            _peerViewA.audioSource.loop = true;  // 반복적으로 녹음 (이 경우 계속 캡처)
             _peerViewA.audioSource.Play();
 
             _videoManager.SetActiveCameraAndMicrophone(_activeCamera, _peerViewA.audioSource);
@@ -230,7 +228,7 @@ namespace WebRTCTutorial.UI
 
             // Rotate PeerView A and PeerView B GameObjects by 90 degrees on Y-axis
             _peerViewA.transform.rotation = Quaternion.Euler(0, 0, 90); // Rotate 90 degrees on Y-axis
-            _peerViewB.transform.rotation = Quaternion.Euler(0, 0, 90); // Rotate 90 degrees on Y-axis
+           
             Debug.Log("good");
 
 
@@ -247,45 +245,9 @@ namespace WebRTCTutorial.UI
         }
        
 
-        private void OnRemoteVideoReceived(Texture texture)
-        {
-            // OnRemoteVideoReceived에서 받은 텍스처를 그대로 전달
-            _peerViewB.SetVideoTexture(texture);
+       
 
-            // 피어 B의 게임 오브젝트도 90도 회전
-            _peerViewB.transform.rotation = Quaternion.Euler(0, 0, 90); // Rotate 90 degrees on Y-axis
-        }
-        private void OnRemoteAudioReceived(AudioClip audioClip)
-        {
-            // OnRemoteVideoReceived에서 받은 텍스처를 그대로 전달
-            _peerViewB.SetAudioSource(audioClip);
-
-            // 피어 B의 게임 오브젝트도 90도 회전
-
-        }
-
-        private void OnConnectButtonClicked()
-        {
-            // Ensure peerConnection is initialized
-            if (_peerConnection == null)
-            {
-                Debug.LogWarning("Peer connection is null, initializing fuck");
-                _peerConnection = new RTCPeerConnection(); // Ensure the peer connection is initialized
-                Debug.LogWarning("go go!!");
-            }
-
-            // Now try to connect
-            if (_videoManager.CanConnect)
-            {
-                Debug.LogWarning("connect");
-                _videoManager.Connect();  // Assuming _videoManager handles the actual connection logic
-            }
-            else
-            {
-                Debug.LogWarning("Cannot connect, please check the peer connection status.");
-            }
-        }
-
+       
 
         private void OnDisconnectButtonClicked()
         {

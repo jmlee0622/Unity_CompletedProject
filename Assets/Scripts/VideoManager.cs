@@ -3,7 +3,9 @@ using System.Collections;
 using Unity.WebRTC;
 using UnityEngine;
 using UnityEngine.Android;
+using UnityEngine.UI;
 using WebRTCTutorial.DTO;
+using WebRTCTutorial.UI;
 
 namespace WebRTCTutorial
 {
@@ -164,48 +166,81 @@ namespace WebRTCTutorial
         // WebRTC 이벤트 핸들러들
         private void OnTrack(RTCTrackEvent trackEvent)
         {
-            // 비디오 트랙을 처리하는 부분
             if (trackEvent.Track is VideoStreamTrack videoStreamTrack)
             {
-                videoStreamTrack.OnVideoReceived += OnVideoReceived;
-            }
-            // 오디오 트랙을 처리하는 부분
-            else if (trackEvent.Track is AudioStreamTrack audioStreamTrack)
-            {   
-                OutputAudioSource.SetTrack(audioStreamTrack);
-                if(OutputAudioSource.clip==null)
+                RawImage videoDisplay = CreateOrFindRawImageForPeer(trackEvent.Track.Id); // Track.Id로 변경
+                videoStreamTrack.OnVideoReceived += (Texture texture) =>
                 {
-                    Debug.Log("OutputAudioSource.clip is null");
-                }
-                OutputAudioSource.loop = true; // 필요 시 루프 설정
-                OutputAudioSource.Play();
+                    videoDisplay.texture = texture;
+                };
 
-                Debug.Log("Audio track connected.");
-
-                Debug.Log("event register");
+                
             }
-            else
+            else if (trackEvent.Track is AudioStreamTrack audioStreamTrack)
             {
-                Debug.LogError($"Unhandled track of type: {trackEvent.Track.GetType()}. Only video and audio tracks are handled.");
+                AudioSource audioSource = CreateOrFindAudioSourceForPeer(trackEvent.Track.Id); // Track.Id로 변경
+                audioSource.SetTrack(audioStreamTrack);
+                audioSource.loop = true;
+                audioSource.Play();
+
+                
             }
         }
 
 
-        private void OnVideoReceived(Texture texture)
+        // 비디오를 표시할 RawImage UI 요소를 동적으로 생성하는 메서드
+        private RawImage CreateOrFindRawImageForPeer(string peerId)
         {
-            Debug.Log($"Video received, resolution: {texture.width}x{texture.height}");
-            RemoteVideoReceived?.Invoke(texture);
+            GameObject videoPanel = FindOrCreateVideoPanel(peerId);
+            RawImage rawImage = videoPanel.GetComponentInChildren<RawImage>();
+
+            if (rawImage == null)
+            {
+                rawImage = videoPanel.AddComponent<RawImage>();
+            }
+            videoPanel.transform.localScale = new Vector3(7, 7, 0f); // 크기 설정
+            videoPanel.transform.localPosition = new Vector3(1f, 2f, 0f); // 위치 이거 부모기준이야?
+            videoPanel.transform.rotation = Quaternion.Euler(0, 0, 90);
+            return rawImage;
         }
-        private void OnAudioReceived(float[] data, int channels, int sampleRate)
+
+        // 오디오를 표시할 AudioSource UI 요소를 동적으로 생성하는 메서드
+        private AudioSource CreateOrFindAudioSourceForPeer(string peerId)
         {
-            Debug.Log($"Audio received, data length: {data.Length}, channels: {channels}, sampleRate: {sampleRate}");
+            GameObject audioPanel = FindOrCreateAudioPanel(peerId);
+            AudioSource audioSource = audioPanel.GetComponentInChildren<AudioSource>();
 
+            if (audioSource == null)
+            {
+                audioSource = audioPanel.AddComponent<AudioSource>();
+            }
 
-            AudioClip audioClip = AudioClip.Create("ReceivedAudio", data.Length / channels, channels, sampleRate, false);
-            audioClip.SetData(data, 0);
-            RemoteAudioReceived?.Invoke(audioClip);
+            return audioSource;
         }
 
+        // 비디오 패널을 찾거나 생성하는 메서드
+        private GameObject FindOrCreateVideoPanel(string peerId)
+        {
+            GameObject videoPanel = GameObject.Find("VideoPanel_" + peerId);
+            if (videoPanel == null)
+            {
+                videoPanel = new GameObject("VideoPanel_" + peerId);
+                videoPanel.transform.SetParent(this.transform);
+            }
+            return videoPanel;
+        }
+
+        // 오디오 패널을 찾거나 생성하는 메서드
+        private GameObject FindOrCreateAudioPanel(string peerId)
+        {
+            GameObject audioPanel = GameObject.Find("AudioPanel_" + peerId);
+            if (audioPanel == null)
+            {
+                audioPanel = new GameObject("AudioPanel_" + peerId);
+                audioPanel.transform.SetParent(this.transform);
+            }
+            return audioPanel;
+        }
 
         private void OnNegotiationNeeded()
         {
